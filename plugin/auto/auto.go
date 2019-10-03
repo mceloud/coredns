@@ -56,7 +56,7 @@ func (a Auto) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	a.Zones.RUnlock()
 
 	if !ok || z == nil {
-		return dns.RcodeServerFailure, nil
+		return plugin.NextOrFailure(a.Name(), a.Next, ctx, w, r)
 	}
 
 	if state.QType() == dns.TypeAXFR || state.QType() == dns.TypeIXFR {
@@ -76,10 +76,11 @@ func (a Auto) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (i
 	case file.NoData:
 	case file.NameError:
 		m.Rcode = dns.RcodeNameError
+		return plugin.NextOrFailure(a.Name(), a.Next, ctx, w, r)
 	case file.Delegation:
 		m.Authoritative = false
 	case file.ServerFailure:
-		return dns.RcodeServerFailure, nil
+		return plugin.NextOrFailure(a.Name(), a.Next, ctx, w, r)
 	}
 
 	w.WriteMsg(m)
